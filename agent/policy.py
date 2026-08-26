@@ -37,4 +37,30 @@ class PolicyContext:
 
 
 def check(context: PolicyContext) -> tuple[bool, str]:
-    raise NotImplementedError("BƯỚC 3b: implement policy check")
+    if context.data_classification == "restricted" and context.egress_enabled:
+        return False, (
+            f"deny: classification=restricted forbids egress "
+            f"(owner={context.agent_owner}, purpose={context.request_purpose}, "
+            f"delegation_depth={context.delegation_depth})"
+        )
+    return True, (
+        f"allow: classification={context.data_classification}, "
+        f"egress_enabled={context.egress_enabled}, purpose={context.request_purpose}, "
+        f"owner={context.agent_owner}"
+    )
+
+
+def _demo() -> None:
+    denied = check(
+        PolicyContext("restricted", "reconciliation", "run-b", 1, True)
+    )
+    allowed = check(
+        PolicyContext("internal", "summarize-tickets", "run-a", 0, False)
+    )
+    assert denied[0] is False and denied[1]
+    assert allowed[0] is True and allowed[1]
+    print("agent/policy.py self-check OK:", denied, allowed)
+
+
+if __name__ == "__main__":
+    _demo()
